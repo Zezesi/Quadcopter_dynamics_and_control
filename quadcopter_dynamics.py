@@ -77,7 +77,7 @@ def quadcopter_dynamics(w,vx,vy,vz,r,p,yaw,vr,vp,vyaw,agi):
     return vt,va,ati,aai
 
 def draw_drone(ax,p0,p0l,p0u,p10,p20,p30,p40,p110,p210,p310,p410,p120,p220,p320,p420):
-    ax.scatter3D(p0[0][0], p0[1][0], 5)
+    #ax.scatter3D(p0[0][0], p0[1][0], 5)
     ax.scatter3D(p0[0][0], p0[1][0], p0[2][0])
     ax.scatter3D(p0l[0][0], p0l[1][0], p0l[2][0])
     ax.scatter3D(p0u[0][0], p0u[1][0], p0u[2][0])
@@ -122,6 +122,22 @@ def displacement_update(vt,va):
     dtra=Ts*vt # translational displacements around body axis at each time step
     dang=Ts*va # rotational displacements around body axis at each time step
     return dtra,dang
+
+
+def claculate_angular_position(T0it):
+    if T0it[2][0] != 1 or T0it[2][0] != -1:
+        proll = np.atan(T0it[2][1] / T0it[2][2])
+        ppitch = np.arcsin(-T0it[2][0])
+        pyaw = np.atan(T0it[1][0] / T0it[0][0])
+    elif T0it[2][0] == 1:
+        proll = 100
+        ppitch = 270 / 180 * np.pi
+        pyaw = 100
+    else:
+        proll = 100
+        ppitch = 90 / 180 * np.pi
+        pyaw = 100
+    return proll,ppitch,pyaw
 
 
 if __name__=="__main__":
@@ -176,10 +192,24 @@ if __name__=="__main__":
     agi = Ri0 @ agi
     vti = Ri0 @ vti
     vai = Ri0 @ vai
+    proll,ppitch,pyaw=claculate_angular_position(T0it)
     w=np.array([[0.0],[0.0],[0.0],[0.0]])
     timestep=0
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
+    draw_drone(ax, p0, p0l, p0u, p10, p20, p30, p40, p110, p210, p310, p410, p120, p220, p320, p420)
+    ax.view_init(elev=10, azim=10, roll=0)
+    ax.set_xlabel('X [m]')
+    ax.set_ylabel('Y [m]')
+    ax.set_zlabel('Z [m]')
+    plt.axis('equal')
+    plt.title(
+        f'Quadcopter state|Tra.Accel(XYZ): {at0[0][0]:.3f}m/s^2  |{at0[1][0]:.3f}m/s^2  |{at0[2][0]:.3f}m/s^2\n'
+        f'                |Ang.Accel(XYZ): {aa0[0][0]:.3f}rad/s^2|{aa0[1][0]:.3f}rad/s^2|{aa0[2][0]:.3f}rad/s^2\n'
+        f'                |Ang.Posit(XYZ): {proll:.3f}rad        |{ppitch:.3f}rad       |{pyaw:.3f}rad\n'
+        f'                |Tra.posit(XYZ): {p0[0][0]:.3f}m       |{p0[1][0]:.3f}m       |{p0[2][0]:.3f}m',
+        y=0.9)
+    plt.pause(5)
     e_cur =0
     e_integral_cur=0
     e_cur1 = 0
@@ -213,18 +243,7 @@ if __name__=="__main__":
         agi = Ri0 @ agi
         vti = Ri0 @ vti
         vai = Ri0 @ vai
-        if T0it[2][0]!=1 or T0it[2][0]!=-1:
-            droll = np.atan(T0it[2][1] / T0it[2][2])
-            dpitch = np.arcsin(-T0it[2][0])
-            dyaw = np.atan(T0it[1][0] / T0it[0][0])
-        elif T0it[2][0]==1:
-            droll=100
-            dpitch=270/180*np.pi
-            dyaw=100
-        else:
-            droll = 100
-            dpitch = 90 / 180 * np.pi
-            dyaw = 100
+        proll,ppitch,pyaw=claculate_angular_position(T0it)
         timestep=timestep+1
         w,e_cur,e_integral_cur,e_cur1,e_integral_cur1=input_update(w,vt0[1][0],2,e_cur,e_integral_cur,p0[2][0],5,e_cur1,e_integral_cur1)
         ax.cla()
@@ -239,7 +258,7 @@ if __name__=="__main__":
             f'                |Ang.Accel(XYZ): {aa0[0][0]:.3f}rad/s^2|{aa0[1][0]:.3f}rad/s^2|{aa0[2][0]:.3f}rad/s^2\n'
             f'                |Tra.Veloc(XYZ): {vt0[0][0]:.3f}m/s    |{vt0[1][0]:.3f}m/s    |{vt0[2][0]:.3f}m/s\n'
             f'                |Ang.Veloc(XYZ): {va0[0][0]:.3f}rad/s  |{va0[1][0]:.3f}rad/s  |{va0[2][0]:.3f}rad/s\n'
-            f'                |Ang.Posit(XYZ): {droll:.3f}rad        |{dpitch:.3f}rad       |{dyaw:.3f}rad\n'
+            f'                |Ang.Posit(XYZ): {proll:.3f}rad        |{ppitch:.3f}rad       |{pyaw:.3f}rad\n'
             f'                |Tra.posit(XYZ): {p0[0][0]:.3f}m       |{p0[1][0]:.3f}m       |{p0[2][0]:.3f}m',
         y=0.9)
 
