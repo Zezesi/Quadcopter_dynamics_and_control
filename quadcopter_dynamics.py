@@ -39,6 +39,7 @@ def rotation_matrix0i(r,p,yaw):
                   [0, np.sin(r), np.cos(r)*np.cos(p)]])
     return Ri0
 
+
 def transformation_matrix0i(x,y,z,r,p,yaw):
     t0i=np.array([[np.cos(p)*np.cos(yaw)                                 , -np.sin(yaw)*np.cos(p)                                  , np.sin(p)           , x],
                   [np.sin(p)*np.sin(r)*np.cos(yaw)+np.sin(yaw)*np.cos(r) , -np.sin(p)*np.sin(r)*np.sin(yaw) + np.cos(r)*np.cos(yaw), -np.sin(r)*np.cos(p), y],
@@ -65,6 +66,9 @@ def quadcopter_dynamics(w,vx,vy,vz,r,p,yaw,vr,vp,vyaw,agi):
     vx = vx + Ts * ax
     vy = vy + Ts * ay
     vz = vz + Ts * az
+    dtra = np.array([[Ts*vx-1/2*Ts*Ts*ax],
+                     [Ts*vy-1/2*Ts*Ts*ay],
+                     [Ts*vz-1/2*Ts*Ts*az]])
     vt = np.array([[vx], [vy], [vz]])
     aroll = (Iyy - Izz) / Ixx * vp * vyaw - Ir / Ixx * vp * omega + T2 / Ixx - Ar / Ixx * vr # rotational acceleration in x direction of the moving body frame i
     apitch = (Izz - Ixx) / Iyy * vr * vyaw + Ir / Iyy * vr * omega + T3 / Iyy - Ar / Iyy * vp # rotational acceleration in y direction of the moving body frame i
@@ -73,8 +77,11 @@ def quadcopter_dynamics(w,vx,vy,vz,r,p,yaw,vr,vp,vyaw,agi):
     vr = vr + Ts * aroll
     vp = vp + Ts * apitch
     vyaw = vyaw + Ts * ayaw
+    dang = np.array([[Ts * vr - 1 / 2 * Ts * Ts * aroll],
+                     [Ts * vp - 1 / 2 * Ts * Ts * apitch],
+                     [Ts * vyaw - 1 / 2 * Ts * Ts * ayaw]])
     va = np.array([[vr], [vp], [vyaw]])
-    return vt,va,ati,aai
+    return vt,va,ati,aai,dtra,dang
 
 def draw_drone(ax,p0,p0l,p0u,p10,p20,p30,p40,p110,p210,p310,p410,p120,p220,p320,p420):
     #ax.scatter3D(p0[0][0], p0[1][0], 5)
@@ -113,30 +120,26 @@ def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
     e_integral1 = e_integral_pre1 + e1
     e_derivative1 = (e1 - e_pre1) / Ts
     w[0][0] = np.clip((cof1)*e+cof2*e_integral+cof3*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[1][0] = np.clip((cof1+0.1)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[2][0] = np.clip((cof1+0.1)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
+    w[1][0] = np.clip((cof1+0.3)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
+    w[2][0] = np.clip((cof1+0.3)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
     w[3][0] = np.clip((cof1)*e+cof2*e_integral+cof3*e_derivative+cof11*e1+(cof21)*e_integral1+cof31*e_derivative1,0,500)
     return w,e,e_integral,e1,e_integral1
 
-def displacement_update(vt,va):
-    dtra=Ts*vt # translational displacements around body axis at each time step
-    dang=Ts*va # rotational displacements around body axis at each time step
-    return dtra,dang
 
 
 def claculate_angular_position(T0it):
-    if T0it[2][0] != 1 or T0it[2][0] != -1:
+    if T0it[2][0] != 1 and T0it[2][0] != -1:
         proll = np.atan(T0it[2][1] / T0it[2][2])
         ppitch = np.arcsin(-T0it[2][0])
         pyaw = np.atan(T0it[1][0] / T0it[0][0])
     elif T0it[2][0] == 1:
-        proll = 100
+        proll =0
         ppitch = 270 / 180 * np.pi
-        pyaw = 100
+        pyaw = proll-np.atan(-T0it[0][1]/T0it[1][1])
     else:
-        proll = 100
+        proll = 0
         ppitch = 90 / 180 * np.pi
-        pyaw = 100
+        pyaw = np.atan(T0it[0][1]/T0it[1][1])-proll
     return proll,ppitch,pyaw
 
 
@@ -144,12 +147,12 @@ if __name__=="__main__":
     pi=np.array([[0.0],[0.0],[0.0],[1]]) # c.o.g. of the quadcopter initial position in the body frame
     piu=np.array([[0.0],[0.0],[h/2],[1]]) # upper point of the quadcopter initial position in the body frame
     pil = np.array([[0.0], [0.0], [-h / 2], [1]]) # lower point of the quadcopter initial position in the body frame
-    dtra = np.array([[0.0], [0.0], [h/2]]) # initial translational displacements around body axis
-    dang = np.array([[0.0], [0.0], [0.0]]) # initial rotational displacements around body axis
     vti=np.array([[0.0],[0.0],[0.0]]) # initial translational velocity in the body frame
     ati=np.array([[0.0],[0.0],[0.0]]) # initial translational acceleration in the body frame
     vai = np.array([[0.0], [0.0], [0.0]]) # initial rotational velocity in the body frame
     aai = np.array([[0.0], [0.0], [0.0]]) # initial rotational acceleration in the body frame
+    dtra = Ts*vti  # initial translational displacements around body axis
+    dang = Ts*vai  # initial rotational displacements around body axis
     agi=np.array([[0],[0],[-9.81]]) # gravitational acceleration in the body frame
     p1i=np.array([[-l*np.sin(alpha)],[l*np.cos(alpha)],[h/2],[1]]) # arm 1 end position in the body frame
     p2i = np.array([[-l * np.sin(alpha)], [-l * np.cos(alpha)], [h/2], [1]]) # arm 2 end position in the body frame
@@ -167,10 +170,11 @@ if __name__=="__main__":
         [[l / 4 * np.sin(alpha)], [-l / 4 * np.cos(alpha)], [-h / 2], [1]])  # arm 3 end position in the body frame
     p42i = np.array(
         [[l / 4 * np.sin(alpha)], [l / 4 * np.cos(alpha)], [-h / 2], [1]])  # arm 4 end position in the body frame
-
-    Ri0=rotation_matrixi0(dang[0][0], dang[1][0], dang[2][0])
-    R0it = rotation_matrix0i(dang[0][0], dang[1][0], dang[2][0])
-    T0it=transformation_matrix0i(dtra[0][0],dtra[1][0],dtra[2][0],dang[0][0],dang[1][0],dang[2][0])
+    T0it = transformation_matrix0i(0.0, 0.0, h/2, 0.0, 0.0, 0.0)
+    T0it=T0it@transformation_matrix0i(dtra[0][0],dtra[1][0],dtra[2][0],dang[0][0],dang[1][0],dang[2][0])
+    proll, ppitch, pyaw = claculate_angular_position(T0it)
+    Ri0 = rotation_matrixi0(dang[0][0], dang[1][0], dang[2][0])
+    R0it = rotation_matrix0i(proll, ppitch, pyaw)
     p0=T0it@pi # c.o.g. of the quadcopter initial position in the fixed frame
     path0=p0
     p0u=T0it@piu
@@ -187,12 +191,13 @@ if __name__=="__main__":
     p220 = T0it @ p22i
     p320 = T0it @ p32i
     p420 = T0it @ p42i
+    vti = Ri0 @ vti
+    vai = Ri0 @ vai
+    vt0 = R0it @ vti
+    va0 = R0it @ vai
     at0 = R0it @ ati
     aa0 = R0it @ aai
     agi = Ri0 @ agi
-    vti = Ri0 @ vti
-    vai = Ri0 @ vai
-    proll,ppitch,pyaw=claculate_angular_position(T0it)
     w=np.array([[0.0],[0.0],[0.0],[0.0]])
     timestep=0
     fig = plt.figure()
@@ -204,10 +209,10 @@ if __name__=="__main__":
     ax.set_zlabel('Z [m]')
     plt.axis('equal')
     plt.title(
-        f'Quadcopter state|Tra.Accel(XYZ): {at0[0][0]:.3f}m/s^2  |{at0[1][0]:.3f}m/s^2  |{at0[2][0]:.3f}m/s^2\n'
-        f'                |Ang.Accel(XYZ): {aa0[0][0]:.3f}rad/s^2|{aa0[1][0]:.3f}rad/s^2|{aa0[2][0]:.3f}rad/s^2\n'
-        f'                |Ang.Posit(XYZ): {proll:.3f}rad        |{ppitch:.3f}rad       |{pyaw:.3f}rad\n'
-        f'                |Tra.posit(XYZ): {p0[0][0]:.3f}m       |{p0[1][0]:.3f}m       |{p0[2][0]:.3f}m',
+        f'Initial Quadcopter state|Tra.Accel(XYZ): {at0[0][0]:.3f}m/s^2  |{at0[1][0]:.3f}m/s^2  |{at0[2][0]:.3f}m/s^2\n'
+                      f'                |Ang.Accel(XYZ): {aa0[0][0]:.3f}rad/s^2|{aa0[1][0]:.3f}rad/s^2|{aa0[2][0]:.3f}rad/s^2\n'
+                      f'                |Ang.Posit(XYZ): {proll:.3f}rad        |{ppitch:.3f}rad       |{pyaw:.3f}rad\n'
+                      f'                |Tra.posit(XYZ): {p0[0][0]:.3f}m       |{p0[1][0]:.3f}m       |{p0[2][0]:.3f}m',
         y=0.9)
     plt.pause(5)
     e_cur =0
@@ -215,11 +220,11 @@ if __name__=="__main__":
     e_cur1 = 0
     e_integral_cur1 = 0
     while True:
-        vti,vai,ati,aai=quadcopter_dynamics(w,vti[0][0],vti[1][0],vti[2][0],dang[0][0],dang[1][0],dang[2][0],vai[0][0],vai[1][0],vai[2][0],agi)
-        dtra,dang=displacement_update(vti,vai)
-        Ri0 = rotation_matrixi0(dang[0][0],dang[1][0],dang[2][0])
-        R0it=R0it@rotation_matrix0i(dang[0][0],dang[1][0],dang[2][0])
-        T0it=T0it@transformation_matrix0i(dtra[0][0],dtra[1][0],dtra[2][0],dang[0][0],dang[1][0],dang[2][0])
+        vti,vai,ati,aai,dtra,dang=quadcopter_dynamics(w,vti[0][0],vti[1][0],vti[2][0],dang[0][0],dang[1][0],dang[2][0],vai[0][0],vai[1][0],vai[2][0],agi)
+        T0it = T0it@transformation_matrix0i(dtra[0][0], dtra[1][0], dtra[2][0], dang[0][0], dang[1][0], dang[2][0])
+        proll, ppitch, pyaw = claculate_angular_position(T0it)
+        Ri0 = rotation_matrixi0(dang[0][0], dang[1][0], dang[2][0])
+        R0it = rotation_matrix0i(proll, ppitch, pyaw)
         p0 = T0it @ pi
         #pathp0=np.concatenate((pathp0,p0),axis=1)
         p0u=T0it@piu
@@ -238,12 +243,11 @@ if __name__=="__main__":
         p420 = T0it @ p42i
         at0 = R0it @ ati
         aa0 = R0it @ aai
+        vti = Ri0 @ vti
+        vai = Ri0 @ vai
         vt0=R0it @ vti
         va0=R0it @ vai
         agi = Ri0 @ agi
-        vti = Ri0 @ vti
-        vai = Ri0 @ vai
-        proll,ppitch,pyaw=claculate_angular_position(T0it)
         timestep=timestep+1
         w,e_cur,e_integral_cur,e_cur1,e_integral_cur1=input_update(w,vt0[1][0],2,e_cur,e_integral_cur,p0[2][0],5,e_cur1,e_integral_cur1)
         ax.cla()
