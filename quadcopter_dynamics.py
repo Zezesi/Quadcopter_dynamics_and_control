@@ -26,7 +26,7 @@ Ixx=0.0213 # mass moment of inertia around x axis in the body frame(kg*m^2)
 Iyy=0.02217 # mass moment of inertia around y axis in the body frame(kg*m^2)
 Izz=0.0282 # mass moment of inertia around y axis in the body frame(kg*m^2)
 Ir=3.357*1e-5 # rotor mass moment of inertia(kg*m^2)
-h=0.10 # quadcopter height
+h=0.07 # quadcopter height
 def rotation_matrixi0(r,p,yaw): # roll, pitch, yaw
     Ri0=np.array([[1, 0        , -np.sin(p)],
                   [0, np.cos(r) , np.sin(r)*np.cos(p)],
@@ -76,6 +76,27 @@ def quadcopter_dynamics(w,vx,vy,vz,r,p,yaw,vr,vp,vyaw,agi):
     va = np.array([[vr], [vp], [vyaw]])
     return vt,va,ati,aai
 
+def draw_drone(ax,p0,p0l,p0u,p10,p20,p30,p40,p110,p210,p310,p410,p120,p220,p320,p420):
+    ax.scatter3D(p0[0][0], p0[1][0], 5)
+    ax.scatter3D(p0[0][0], p0[1][0], p0[2][0])
+    ax.scatter3D(p0l[0][0], p0l[1][0], p0l[2][0])
+    ax.scatter3D(p0u[0][0], p0u[1][0], p0u[2][0])
+    ax.plot3D([p10[0][0], p0u[0][0]], [p10[1][0], p0u[1][0]], [p10[2][0], p0u[2][0]])
+    ax.plot3D([p20[0][0], p0u[0][0]], [p20[1][0], p0u[1][0]], [p20[2][0], p0u[2][0]])
+    ax.plot3D([p30[0][0], p0u[0][0]], [p30[1][0], p0u[1][0]], [p30[2][0], p0u[2][0]])
+    ax.plot3D([p40[0][0], p0u[0][0]], [p40[1][0], p0u[1][0]], [p40[2][0], p0u[2][0]])
+    ax.plot3D([p110[0][0], p210[0][0]], [p110[1][0], p210[1][0]], [p110[2][0], p210[2][0]])
+    ax.plot3D([p210[0][0], p310[0][0]], [p210[1][0], p310[1][0]], [p210[2][0], p310[2][0]])
+    ax.plot3D([p310[0][0], p410[0][0]], [p310[1][0], p410[1][0]], [p310[2][0], p410[2][0]])
+    ax.plot3D([p410[0][0], p110[0][0]], [p410[1][0], p110[1][0]], [p410[2][0], p110[2][0]])
+    ax.plot3D([p120[0][0], p220[0][0]], [p120[1][0], p220[1][0]], [p120[2][0], p220[2][0]])
+    ax.plot3D([p220[0][0], p320[0][0]], [p220[1][0], p320[1][0]], [p220[2][0], p320[2][0]])
+    ax.plot3D([p320[0][0], p420[0][0]], [p320[1][0], p420[1][0]], [p320[2][0], p420[2][0]])
+    ax.plot3D([p420[0][0], p120[0][0]], [p420[1][0], p120[1][0]], [p420[2][0], p120[2][0]])
+    ax.plot3D([p110[0][0], p120[0][0]], [p110[1][0], p120[1][0]], [p110[2][0], p120[2][0]])
+    ax.plot3D([p210[0][0], p220[0][0]], [p210[1][0], p220[1][0]], [p210[2][0], p220[2][0]])
+    ax.plot3D([p310[0][0], p320[0][0]], [p310[1][0], p320[1][0]], [p310[2][0], p320[2][0]])
+    ax.plot3D([p410[0][0], p420[0][0]], [p410[1][0], p420[1][0]], [p410[2][0], p420[2][0]])
 
 
 def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
@@ -91,9 +112,9 @@ def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
     e1 = dv1 - rv1
     e_integral1 = e_integral_pre1 + e1
     e_derivative1 = (e1 - e_pre1) / Ts
-    w[0][0] = np.clip(50+(cof1)*e+cof2*e_integral+cof3*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[1][0] = np.clip((cof1+0.5)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[2][0] = np.clip(50+(cof1+0.5)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
+    w[0][0] = np.clip(200+(cof1)*e+cof2*e_integral+cof3*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
+    w[1][0] = np.clip((cof1)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
+    w[2][0] = np.clip(200+(cof1)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
     w[3][0] = np.clip((cof1)*e+cof2*e_integral+cof3*e_derivative+cof11*e1+(cof21)*e_integral1+cof31*e_derivative1,0,500)
     return w,e,e_integral,e1,e_integral1
 
@@ -118,17 +139,38 @@ if __name__=="__main__":
     p2i = np.array([[-l * np.sin(alpha)], [-l * np.cos(alpha)], [h/2], [1]]) # arm 2 end position in the body frame
     p3i = np.array([[l * np.sin(alpha)], [-l * np.cos(alpha)], [h/2], [1]]) # arm 3 end position in the body frame
     p4i = np.array([[l * np.sin(alpha)], [l * np.cos(alpha)], [h/2], [1]]) # arm 4 end position in the body frame
+    p11i = np.array([[-l/4 * np.sin(alpha)], [l/4 * np.cos(alpha)], [h / 2], [1]])
+    p21i = np.array([[-l/4 * np.sin(alpha)], [-l/4 * np.cos(alpha)], [h / 2], [1]])
+    p31i = np.array([[l/4 * np.sin(alpha)], [-l/4 * np.cos(alpha)], [h / 2], [1]])
+    p41i = np.array([[l/4 * np.sin(alpha)], [l/4 * np.cos(alpha)], [h / 2], [1]])
+    p12i = np.array(
+        [[-l / 4 * np.sin(alpha)], [l / 4 * np.cos(alpha)], [-h / 2], [1]])  # arm 1 end position in the body frame
+    p22i = np.array(
+        [[-l / 4 * np.sin(alpha)], [-l / 4 * np.cos(alpha)], [-h / 2], [1]])  # arm 2 end position in the body frame
+    p32i = np.array(
+        [[l / 4 * np.sin(alpha)], [-l / 4 * np.cos(alpha)], [-h / 2], [1]])  # arm 3 end position in the body frame
+    p42i = np.array(
+        [[l / 4 * np.sin(alpha)], [l / 4 * np.cos(alpha)], [-h / 2], [1]])  # arm 4 end position in the body frame
+
     Ri0=rotation_matrixi0(dang[0][0], dang[1][0], dang[2][0])
     R0it = rotation_matrix0i(dang[0][0], dang[1][0], dang[2][0])
     T0it=transformation_matrix0i(dtra[0][0],dtra[1][0],dtra[2][0],dang[0][0],dang[1][0],dang[2][0])
     p0=T0it@pi # c.o.g. of the quadcopter initial position in the fixed frame
-    pathp0=p0
+    path0=p0
     p0u=T0it@piu
     p0l=T0it@pil
     p10=T0it@p1i
     p20 =T0it @ p2i
     p30 =T0it @ p3i
     p40 = T0it @ p4i
+    p110 = T0it @ p11i
+    p210 = T0it @ p21i
+    p310 = T0it @ p31i
+    p410 = T0it @ p41i
+    p120 = T0it @ p12i
+    p220 = T0it @ p22i
+    p320 = T0it @ p32i
+    p420 = T0it @ p42i
     at0 = R0it @ ati
     aa0 = R0it @ aai
     agi = Ri0 @ agi
@@ -149,13 +191,21 @@ if __name__=="__main__":
         R0it=R0it@rotation_matrix0i(dang[0][0],dang[1][0],dang[2][0])
         T0it=T0it@transformation_matrix0i(dtra[0][0],dtra[1][0],dtra[2][0],dang[0][0],dang[1][0],dang[2][0])
         p0 = T0it @ pi
-        pathp0=np.concatenate((pathp0,p0),axis=1)
+        #pathp0=np.concatenate((pathp0,p0),axis=1)
         p0u=T0it@piu
         p0l = T0it @ pil
         p10 = T0it @ p1i
         p20 = T0it @ p2i
         p30 = T0it @ p3i
         p40 = T0it @ p4i
+        p110 = T0it @ p11i
+        p210 = T0it @ p21i
+        p310 = T0it @ p31i
+        p410 = T0it @ p41i
+        p120 = T0it @ p12i
+        p220 = T0it @ p22i
+        p320 = T0it @ p32i
+        p420 = T0it @ p42i
         at0 = R0it @ ati
         aa0 = R0it @ aai
         vt0=R0it @ vti
@@ -178,15 +228,7 @@ if __name__=="__main__":
         timestep=timestep+1
         w,e_cur,e_integral_cur,e_cur1,e_integral_cur1=input_update(w,vt0[1][0],2,e_cur,e_integral_cur,p0[2][0],5,e_cur1,e_integral_cur1)
         ax.cla()
-        ax.scatter3D(p0[0][0], p0[1][0], 4)
-        ax.scatter3D(p0[0][0], p0[1][0], p0[2][0])
-        ax.scatter3D(p0l[0][0], p0l[1][0], p0l[2][0])
-        ax.scatter3D(p0u[0][0], p0u[1][0], p0u[2][0])
-        ax.plot3D([p10[0][0], p0u[0][0]], [p10[1][0], p0u[1][0]], [p10[2][0], p0u[2][0]])
-        ax.plot3D([p20[0][0], p0u[0][0]], [p20[1][0], p0u[1][0]], [p20[2][0], p0u[2][0]])
-        ax.plot3D([p30[0][0], p0u[0][0]], [p30[1][0], p0u[1][0]], [p30[2][0], p0u[2][0]])
-        ax.plot3D([p40[0][0], p0u[0][0]], [p40[1][0], p0u[1][0]], [p40[2][0], p0u[2][0]])
-        #ax.plot3D(pathp0[0,:], pathp0[1,:], pathp0[2,:])
+        draw_drone(ax,p0,p0l,p0u,p10,p20,p30,p40,p110,p210,p310,p410,p120,p220,p320,p420)
         ax.view_init(elev=10, azim=10,roll=0)
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
