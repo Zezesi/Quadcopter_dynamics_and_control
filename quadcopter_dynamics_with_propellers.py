@@ -99,6 +99,26 @@ def draw_drone(ax,p0,p0l,p0u,p10,p20,p30,p40,p110,p210,p310,p410,p120,p220,p320,
     ax.plot3D([p310[0][0], p320[0][0]], [p310[1][0], p320[1][0]], [p310[2][0], p320[2][0]])
     ax.plot3D([p410[0][0], p420[0][0]], [p410[1][0], p420[1][0]], [p410[2][0], p420[2][0]])
 
+def propeller_position0(T0it,T0itp1,p1p1i,p1p2i,p1p3i,p1p4i):
+    T0itp1 = T0it @ T0itp1
+    p1p10 = T0itp1 @ p1p1i
+    p1p20 = T0itp1 @ p1p2i
+    p1p30 = T0itp1 @ p1p3i
+    p1p40 = T0itp1 @ p1p4i
+    return p1p10,p1p20,p1p30,p1p40
+
+def propeller_positioni(p1p1i,p1p2i,p1p3i,p1p4i,w1):
+    p1p1i=transformation_matrix0i(0.0,0.0,0.0,0.0,0.0,Ts*w1)@p1p1i
+    p1p2i = transformation_matrix0i(0.0, 0.0, 0.0, 0.0,0.0, Ts * w1) @ p1p2i
+    p1p3i = transformation_matrix0i(0.0, 0.0, 0.0, 0.0, 0.0,Ts * w1) @ p1p3i
+    p1p4i = transformation_matrix0i(0.0, 0.0, 0.0, 0.0, 0.0,Ts * w1) @ p1p4i
+    return p1p1i,p1p2i,p1p3i,p1p4i
+
+def draw_propeller(p10,p1p10,p1p20,p1p30,p1p40):
+    ax.plot3D([p10[0][0], p1p10[0][0]], [p10[1][0], p1p10[1][0]], [p10[2][0], p1p10[2][0]])
+    ax.plot3D([p10[0][0], p1p20[0][0]], [p10[1][0], p1p20[1][0]], [p10[2][0], p1p20[2][0]])
+    ax.plot3D([p10[0][0], p1p30[0][0]], [p10[1][0], p1p30[1][0]], [p10[2][0], p1p30[2][0]])
+    ax.plot3D([p10[0][0], p1p40[0][0]], [p10[1][0], p1p40[1][0]], [p10[2][0], p1p40[2][0]])
 
 def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
     cof1=10.0
@@ -118,7 +138,6 @@ def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
     w[2][0] = np.clip(00+(cof1+0.3)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
     w[3][0] = np.clip(+(cof1)*e+cof2*e_integral+cof3*e_derivative+cof11*e1+(cof21)*e_integral1+cof31*e_derivative1,0,500)
     return w,e,e_integral,e1,e_integral1
-
 
 
 def claculate_angular_position(T0it):
@@ -153,14 +172,14 @@ if __name__=="__main__":
     p2i = np.array([[-l * np.sin(alpha)], [-l * np.cos(alpha)], [h/2], [1]]) # arm 2 end position in the body frame
     p3i = np.array([[l * np.sin(alpha)], [-l * np.cos(alpha)], [h/2], [1]]) # arm 3 end position in the body frame
     p4i = np.array([[l * np.sin(alpha)], [l * np.cos(alpha)], [h/2], [1]]) # arm 4 end position in the body frame
-    p11i = np.array([[-l/4 * np.sin(alpha)], [l/4 * np.cos(alpha)], [h / 2], [1]])
+    p11i = np.array([[-l/4 * np.sin(alpha)], [l/4 * np.cos(alpha)], [h / 2], [1]]) # main body point 1
     p21i = np.array([[-l/4 * np.sin(alpha)], [-l/4 * np.cos(alpha)], [h / 2], [1]])
     p31i = np.array([[l/4 * np.sin(alpha)], [-l/4 * np.cos(alpha)], [h / 2], [1]])
     p41i = np.array([[l/4 * np.sin(alpha)], [l/4 * np.cos(alpha)], [h / 2], [1]])
     p12i = np.array([[-l / 4 * np.sin(alpha)], [l / 4 * np.cos(alpha)], [-h / 2], [1]])
     p22i = np.array([[-l / 4 * np.sin(alpha)], [-l / 4 * np.cos(alpha)], [-h / 2], [1]])
     p32i = np.array([[l / 4 * np.sin(alpha)], [-l / 4 * np.cos(alpha)], [-h / 2], [1]])
-    p42i = np.array([[l / 4 * np.sin(alpha)], [l / 4 * np.cos(alpha)], [-h / 2], [1]])
+    p42i = np.array([[l / 4 * np.sin(alpha)], [l / 4 * np.cos(alpha)], [-h / 2], [1]]) # main body point 8
     T0it = transformation_matrix0i(0.0, 0.0, h/2, 0.0, 0.0, 0.0)
     T0it=T0it@transformation_matrix0i(dtra[0][0],dtra[1][0],dtra[2][0],dang[0][0],dang[1][0],dang[2][0])
     proll, ppitch, pyaw = claculate_angular_position(T0it)
@@ -189,11 +208,45 @@ if __name__=="__main__":
     at0 = R0it @ ati
     aa0 = R0it @ aai
     agi = Ri0 @ ag # gravitational acceleration in the body frame(m/s^2)
+
     w=np.array([[0.0],[0.0],[0.0],[0.0]])
+    p1p1i = np.array([[0.0], [0.05], [0], [1]])
+    p1p2i = np.array([[0.05], [0.0], [0], [1]])
+    p1p3i = np.array([[0.0], [-0.05], [0], [1]])
+    p1p4i = np.array([[-0.05], [0.0], [0], [1]])
+    p1p1i,p1p2i,p1p3i,p1p4i=propeller_positioni(p1p1i,p1p2i,p1p3i,p1p4i,w[0][0])
+    T0itp1=transformation_matrix0i(-l*np.sin(alpha),l*np.cos(alpha),h/2,0.0,0.0,0.0)
+    p1p10,p1p20,p1p30,p1p40=propeller_position0(T0it,T0itp1,p1p1i,p1p2i,p1p3i,p1p4i)
+    p2p1i = np.array([[0.0], [0.05], [0], [1]])
+    p2p2i = np.array([[0.05], [0.0], [0], [1]])
+    p2p3i = np.array([[0.0], [-0.05], [0], [1]])
+    p2p4i = np.array([[-0.05], [0.0], [0], [1]])
+    p2p1i, p2p2i, p2p3i, p2p4i = propeller_positioni(p2p1i, p2p2i, p2p3i, p2p4i, w[1][0])
+    T0itp2 = transformation_matrix0i(-l * np.sin(alpha), -l * np.cos(alpha), h / 2, 0.0, 0.0, 0.0)
+    p2p10, p2p20, p2p30, p2p40 = propeller_position0(T0it, T0itp2, p2p1i, p2p2i, p2p3i, p2p4i)
+    p3p1i = np.array([[0.0], [0.05], [0], [1]])
+    p3p2i = np.array([[0.05], [0.0], [0], [1]])
+    p3p3i = np.array([[0.0], [-0.05], [0], [1]])
+    p3p4i = np.array([[-0.05], [0.0], [0], [1]])
+    p3p1i, p3p2i, p3p3i, p3p4i = propeller_positioni(p3p1i, p3p2i, p3p3i, p3p4i, w[2][0])
+    T0itp3 = transformation_matrix0i(l * np.sin(alpha), -l * np.cos(alpha), h / 2, 0.0, 0.0, 0.0)
+    p3p10, p3p20, p3p30, p3p40 = propeller_position0(T0it, T0itp3, p3p1i, p3p2i, p3p3i, p3p4i)
+    p4p1i = np.array([[0.0], [0.05], [0], [1]])
+    p4p2i = np.array([[0.05], [0.0], [0], [1]])
+    p4p3i = np.array([[0.0], [-0.05], [0], [1]])
+    p4p4i = np.array([[-0.05], [0.0], [0], [1]])
+    p4p1i, p4p2i, p4p3i, p4p4i = propeller_positioni(p4p1i, p4p2i, p4p3i, p4p4i, w[3][0])
+    T0itp4 = transformation_matrix0i(l * np.sin(alpha), l * np.cos(alpha), h / 2, 0.0, 0.0, 0.0)
+    p4p10, p4p20, p4p30, p4p40 = propeller_position0(T0it, T0itp4, p4p1i, p4p2i, p4p3i, p4p4i)
+
     timestep=0
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     draw_drone(ax, p0, p0l, p0u, p10, p20, p30, p40, p110, p210, p310, p410, p120, p220, p320, p420)
+    draw_propeller(p10,p1p10,p1p20,p1p30,p1p40)
+    draw_propeller(p20, p2p10, p2p20, p2p30, p2p40)
+    draw_propeller(p30, p3p10, p3p20, p3p30, p3p40)
+    draw_propeller(p40, p4p10, p4p20, p4p30, p4p40)
     ax.view_init(elev=10, azim=50, roll=0)
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Y [m]')
@@ -243,8 +296,20 @@ if __name__=="__main__":
         agi = Ri0 @ agi
         timestep=timestep+1
         w,e_cur,e_integral_cur,e_cur1,e_integral_cur1=input_update(w,vt0[1][0],2.0,e_cur,e_integral_cur,p0[2][0],5,e_cur1,e_integral_cur1)
+        p1p1i, p1p2i, p1p3i, p1p4i = propeller_positioni(p1p1i, p1p2i, p1p3i, p1p4i, w[0][0])
+        p2p1i, p2p2i, p2p3i, p2p4i = propeller_positioni(p2p1i, p2p2i, p2p3i, p2p4i, w[1][0])
+        p3p1i, p3p2i, p3p3i, p3p4i = propeller_positioni(p3p1i, p3p2i, p3p3i, p3p4i, w[2][0])
+        p4p1i, p4p2i, p4p3i, p4p4i = propeller_positioni(p4p1i, p4p2i, p4p3i, p4p4i, w[3][0])
+        p1p10, p1p20, p1p30, p1p40 = propeller_position0(T0it, T0itp1, p1p1i, p1p2i, p1p3i, p1p4i)
+        p2p10, p2p20, p2p30, p2p40 = propeller_position0(T0it, T0itp2, p2p1i, p2p2i, p2p3i, p2p4i)
+        p3p10, p3p20, p3p30, p3p40 = propeller_position0(T0it, T0itp3, p3p1i, p3p2i, p3p3i, p3p4i)
+        p4p10, p4p20, p4p30, p4p40 = propeller_position0(T0it, T0itp4, p4p1i, p4p2i, p4p3i, p4p4i)
         ax.cla()
         draw_drone(ax,p0,p0l,p0u,p10,p20,p30,p40,p110,p210,p310,p410,p120,p220,p320,p420)
+        draw_propeller(p10, p1p10, p1p20, p1p30, p1p40)
+        draw_propeller(p20, p2p10, p2p20, p2p30, p2p40)
+        draw_propeller(p30, p3p10, p3p20, p3p30, p3p40)
+        draw_propeller(p40, p4p10, p4p20, p4p30, p4p40)
         ax.view_init(elev=10, azim=10,roll=0)
         ax.set_xlabel('X [m]')
         ax.set_ylabel('Y [m]')
