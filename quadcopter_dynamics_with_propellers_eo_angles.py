@@ -121,9 +121,9 @@ def draw_propeller(p10,p1p10,p1p20,p1p30,p1p40):
     ax.plot3D([p10[0][0], p1p40[0][0]], [p10[1][0], p1p40[1][0]], [p10[2][0], p1p40[2][0]])
 
 def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
-    cof1=10.0
-    cof2=1.0
-    cof3=100.0
+    cof1=2
+    cof2=0.002
+    cof3=5
     cof11 = 200.0
     cof21 = 40.0 # reduce the stead state error, but increase the oscillation
     cof31 = 200.0 # reduce the oscillation
@@ -133,10 +133,15 @@ def input_update(w,rv,dv,e_pre,e_integral_pre,rv1,dv1,e_pre1,e_integral_pre1):
     e1 = dv1 - rv1
     e_integral1 = e_integral_pre1 + e1
     e_derivative1 = (e1 - e_pre1) / Ts
-    w[0][0] = np.clip(100+(cof1)*e+cof2*e_integral+cof3*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[1][0] = np.clip(100+(cof1)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[2][0] = np.clip(0+(cof1)*e+(cof2)*e_integral+(cof3)*e_derivative+(cof11)*e1+cof21*e_integral1+cof31*e_derivative1,0,500)
-    w[3][0] = np.clip(+(cof1)*e+cof2*e_integral+cof3*e_derivative+cof11*e1+(cof21)*e_integral1+cof31*e_derivative1,0,500)
+    w[0][0] = np.clip(-(cof1) * e + -cof2 * e_integral + -cof3 * e_derivative + (
+        cof11) * e1 + cof21 * e_integral1 + cof31 * e_derivative1, 0, 500)
+    w[1][0] = np.clip((cof1) * e + (cof2) * e_integral + (cof3) * e_derivative + (
+        cof11) * e1 + cof21 * e_integral1 + cof31 * e_derivative1, 0, 500)
+    w[2][0] = np.clip((cof1) * e + (cof2) * e_integral + (cof3) * e_derivative + (
+        cof11) * e1 + cof21 * e_integral1 + cof31 * e_derivative1, 0, 500)
+    w[3][0] = np.clip(-(cof1) * e + -cof2 * e_integral + -cof3 * e_derivative + cof11 * e1 + (
+        cof21) * e_integral1 + cof31 * e_derivative1, 0, 500)
+
     return w,e,e_integral,e1,e_integral1
 
 
